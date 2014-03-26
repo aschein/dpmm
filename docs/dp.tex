@@ -1,0 +1,45 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage[left=1in,right=1in,top=1in,bottom=1in]{geometry}
+
+\usepackage[titletoc]{appendix}
+
+\usepackage{amsmath}
+\usepackage{lscape}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{bbm}
+\usepackage{eurosym}
+\usepackage[english]{babel}
+
+\title{Dirichlet Process}
+\author{Aaron Schein}
+
+\begin{document}
+\begin{landscape}
+
+\maketitle
+	
+\begin{table}[ht]
+\caption{Notational mapping}
+\centering
+\begin{tabular}{c c c c}
+\hline\hline
+Description & Wallach & Murphy & Neal\\ [0.5ex]
+\hline
+Observation $i$ & $d_i$ & $\mathbf{x}_i$ & $y_i$\\
+Cluster index of $i$ & $z_i$ & $z_i$ & $c_i$\\
+Observation distribution (OD) & Multinomial($\mathbf{\phi}_{z_i}$) & $F(\mathbf{\theta}_{z_i})$ & $F(\phi_{c_i})$\\
+Params of (OD) & $\mathbf{\phi}_{z_i}$ & $\mathbf{\theta}_{z_i}$ & $\phi_{c_i}$ \\
+Params of OD prior & $\beta, n$ & $\lambda$ & \\
+OD prior distribution & $P(\phi_k|\beta, n)=\text{Dir}(\phi_k | \beta, n)$ & $\theta_k \sim H(\lambda)$ & $\theta_c \sim G_0$\\
+Mixing proportions (MP) & $\theta$ & $\mathbf{\pi}$ & $p$\\ 
+Responsibility of cluster $k$ & $P(z_i = k \;|\; \theta) = \theta_k$ & $P(z_i = k \; | \; \pi) = \pi_k $ & $P(c_i = k \;|\; p) = p_k$\\
+Params of MP prior & $\alpha$, $m$ & $\alpha$ & $\alpha$\\
+MP prior distribution & $P(\theta\;|\;\alpha, m) = \text{Dir}(\theta; \alpha, m)$ & $P(\pi\;|\;\alpha)=\text{Dir}(\pi\;|\;(\alpha/K)\mathbf{1}_k)$ & $p_1,\cdots,p_K \sim \text{Dir}(\alpha/K,\cdots,\alpha/K)$\\
+\hline
+\end{tabular}
+\end{table}
+
+\end{landscape}
+\end{document}

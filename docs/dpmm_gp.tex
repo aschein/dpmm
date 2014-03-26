@@ -1,0 +1,112 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage[left=1in,right=1in,top=1in,bottom=1in]{geometry}
+
+\usepackage[titletoc]{appendix}
+
+\usepackage{amsmath}
+\usepackage{lscape}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{bbm}
+\usepackage{eurosym}
+\usepackage{relsize}
+\usepackage[english]{babel}
+
+\title{Equations for a Dirichlet Process Mixture Model with Gamma-Poisson Observation Distribution}
+\author{Aaron Schein}
+
+\begin{document}
+\maketitle
+
+\section{Generative Process}
+The following is a summary of the generative process for a Dirichlet Process mixture model with Gamma-Poisson observation distribution (DPMM-GP). 
+\begin{align}
+y_i &\sim F(\lambda_{z_i}) = \text{Poisson}(\lambda_{z_i}) \\
+\lambda_k &\sim H(\gamma) = \text{Gamma}(\gamma) \\
+z_i &\sim \theta\\
+\theta &\sim \text{DP}(\alpha)
+\end{align}
+Observations are integer-valued counts $y_1 \cdots y_n$ which are drawn from the observation distribution $F(\lambda_{z_i}) = \text{Poisson}(\lambda_{z_i})$.  Observations are conditionally independent given their cluster index $z_i$ and cluster parameter $\lambda_{z_i}$.  Cluster parameters are real-valued and non-negative and drawn independently from a global prior $H(\gamma) = \text{Gamma}(\gamma)$.  $\theta = (\theta_1,\cdots,\theta_k)$ is a real-valued, non-negative, vector that sums to 1 and represents the mixing proportions of the clusters.  The mixing proportions are drawn from a Dirichlet Process with concentration parameter $\alpha$. 
+
+\section{Sampling Equations}
+
+\subsection{Algorithm 3}
+\begin{align}
+z_i^s &\sim P(z_i = c \;|\;\mathbf{z}_{\_i}, \mathbf{y}, \gamma, \alpha)\\ 
+&\propto P(z_i=c\;|\;\mathbf{z}_{\_i}, \alpha) \; P(y_i\;|\;\mathbf{y}_{\_i}, z_i=c, \gamma)\\[1em]
+P(z_i=c\;|\;\mathbf{z}_{\_i}, \alpha) &=
+\begin{cases}
+\frac{N_{c,\;\_i}}{N - 1 + \alpha} &\text{if $c$ has been seen before} \\
+\frac{\alpha}{N-1+\alpha} &\text{if $c$ is a new cluster}
+\end{cases}\\[1em]
+P(y_i\;|\;\mathbf{y}_{\_i}, z_i=c, \gamma) &= P(y_i\;|\;\mathbf{y}_{c, \_i}, \gamma)\\
+&= \frac{P(y_i, \mathbf{y}_{c, \_i}\;|\;\gamma)}{P(\mathbf{y}_{c, \_i}\;|\;\gamma)}\\
+P(y_i, \mathbf{y}_{c, \_i}\;|\;\gamma) &= \int \mathbf{d}\lambda_c \;P(\lambda_c\;|\;\gamma)\;\left[\prod_{j\neq i:z_j=c} P(y_j\;|\;\lambda_c)\right]\;P(y_i\;|\;\lambda_c)\\
+P(\mathbf{y}_{c, \_i}\;|\;\gamma) &= \int \mathbf{d}\lambda_c \;P(\lambda_c\;|\;\gamma)\;\left[\prod_{j\neq i:z_j=c} P(y_j\;|\;\lambda_c)\right]
+\intertext{Only the second equation is expanded further:}
+&= \int \mathbf{d}\lambda_c \; \text{Gamma}(\lambda_c; \gamma)\;\left[\prod_{j\neq i:z_j=c} \text{Poisson}(y_j;\lambda_c)\right]
+\intertext{Here we use shape/scale parameterization: $\gamma = (\gamma_{\text{shape}}, \gamma_{\text{scale}}) = (a,b)$}
+&= \int \mathbf{d}\lambda_c \; \frac{(\frac{1}{b})^a}{\Gamma(a)}\lambda_c^{a-1}\exp(-\frac{\lambda_c}{b})\;\left[\prod_{j\neq i:z_j=c} \frac{\lambda_c^{y_j}}{\Gamma(y_j + 1)}\exp(-\lambda_c)\right]\\
+&= \frac{(\frac{1}{b})^a}{\Gamma(a)} \frac{\Gamma(a + \sum_{j\neq i} y_j)}{(\frac{1}{b} + N_{c,\_i})^{(a + \sum_{j\neq i} y_j)}}\;\left[\prod_{j\neq i} \frac{1}{\Gamma(y_j + 1)} \right]
+\intertext{Plugging this expression back:}
+P(y_i\;|\;\mathbf{y}_{\_i}, z_i=c, \gamma) &= \frac{\frac{(\frac{1}{b})^a}{\Gamma(a)} \frac{\Gamma(a + y_i + \sum_{j\neq i} y_j)}{(\frac{1}{b} + 1 + N_{c,\_i})^{(a + y_i + \sum_{j\neq i} y_j)}}\;\left[\prod_{j\neq i} \frac{1}{\Gamma(y_j + 1)} \right] \frac{1}{\Gamma(y_i + 1)}}
+{\frac{(\frac{1}{b})^a}{\Gamma(a)} \frac{\Gamma(a + \sum_{j\neq i} y_j)}{(\frac{1}{b} + N_{c,\_i})^{(a + \sum_{j\neq i} y_j)}}\;\left[\prod_{j\neq i} \frac{1}{\Gamma(y_j + 1)} \right]}\\[1em]
+&= \frac{\frac{\Gamma(a + y_i + \sum_{j\neq i} y_j)}{(\frac{1}{b} + 1 + N_{c,\_i})^{(a + y_i + \sum_{j\neq i} y_j)}}\; \frac{1}{\Gamma(y_i + 1)}}{\frac{\Gamma(a + \sum_{j\neq i} y_j)}{(\frac{1}{b} + N_{c,\_i})^{(a + \sum_{j\neq i} y_j)}}}\\[1em]
+&= \frac{\Gamma(a + y_i + \sum_{j\neq i} y_j)}{\Gamma(a + \sum_{j\neq i} y_j)} \frac{(\frac{1}{b} + N_{c,\_i})^{(a + \sum_{j\neq i} y_j)}}{(\frac{1}{b} + 1 + N_{c,\_i})^{(a + y_i + \sum_{j\neq i} y_j)}}\frac{1}{\Gamma(y_i + 1)}
+\end{align}
+
+\subsection{Algorithm 8}
+TODO (very similar to above)
+
+\subsection{Split-Merge Algorithm}
+\begin{align}
+a(\mathbf{z}^*, \mathbf{z}) &= 
+\min\left[1, \; \frac{q(\mathbf{z}|\mathbf{z}^*)}{q(\mathbf{z}^*|\mathbf{z})}\frac{P(\mathbf{z}^*|\alpha)}{P(\mathbf{z}|\alpha)}\frac{P(\mathbf{y}|\mathbf{z}^*, \gamma)}{P(\mathbf{y}|\mathbf{z}, \gamma)}\right]
+\end{align}
+
+\subsubsection{Split}
+\begin{align}
+\frac{P(\mathbf{z}^{\text{split}}|\alpha)}{P(\mathbf{z}|\alpha)} &= 
+\alpha \frac{\Gamma(N_{z_i^{\text{split}}})\Gamma(N_{z_j^{\text{split}}})}{\Gamma(N_{z_i})}\\[1em]
+\frac{q(\mathbf{z}|\mathbf{z}^\text{split})}{q(\mathbf{z}^\text{split}|\mathbf{z})} &= 
+\frac{1}{(\frac{1}{2})^{N_{z_i^\text{split}}  + N_{z_j^\text{split}} - 2}}\\[1em]
+P(\mathbf{y}|\mathbf{z}, \gamma) 
+&= \prod_{c=1}^C \prod_{k: z_k = c} P(y_k\;|\;\mathbf{y}_{c, <k}, \gamma)
+\intertext{Here $\mathbf{y}_{c, <k}$ represents all observations in cluster $c$ that `arrived' before $k$.}
+&= \prod_{c=1}^C \prod_{k: z_k = c} \frac{P(y_k, \mathbf{y}_{c, <k}\;|\; \gamma)}{P(\mathbf{y}_{c, <k}\;|\; \gamma)}
+\intertext{We've already solved this above in the Algorithm 3 section.  Note $\gamma = (a,b)$.  Also note that $q<k$ (in the sums) is shorthand for $q: z_q = c, q<k$:}
+&= \mathlarger{\prod}_{c=1}^C \mathlarger{\prod}_{k: z_k = c} \frac{\Gamma(a + y_k + \sum_{q<k} y_q)}{\Gamma(a + \sum_{q<k} y_q)} \frac{(\frac{1}{b} + N_{c,\;q<k})^{(a + \sum_{q<k} y_q)}}{(\frac{1}{b} + 1 + N_{c,\;q<k})^{(a + y_k + \sum_{q<k} y_q)}}\frac{1}{\Gamma(y_k + 1)}\\[1em]
+&= \mathlarger{\mathlarger{\prod}}_{c=1}^C \; \frac{\Gamma(a + \sum_{k: z_k =c} y_k)}{\Gamma(a)} \frac{(\frac{1}{b})^a}{(\frac{1}{b} + N_{z_k})^{a + \sum_{k: z_k =c} y_k}}\frac{1}{\mathlarger{\prod}_{k:z_k=c}\Gamma(y_k + 1)}\\[1em]
+\frac{P(\mathbf{y}|\mathbf{z}^\text{split}, \gamma)}{P(\mathbf{y}|\mathbf{z}, \gamma)}&=
+\frac{\mathlarger{\prod}_{k: z_k = z_{i^\text{split}}} P(y_k\;|\;\mathbf{y}_{c, <k}, \gamma)\mathlarger{\prod}_{k: z_k = z_{j^\text{split}}} P(y_k\;|\;\mathbf{y}_{c, <k}, \gamma)}{\mathlarger{\prod}_{k: z_k = z_i} P(y_k\;|\;\mathbf{y}_{c, <k}, \gamma)}
+\intertext{For each product of terms, we plug in our result from one line above.  Note that the $\frac{1}{\Gamma(y_k +1)}$ terms will all cancel, thus we ignore them here.}
+&= \frac{\left(\frac{\Gamma(a + \sum_{k: z_k =z_{i^\text{split}}} y_k)}{\Gamma(a)} \frac{(\frac{1}{b})^a}{(\frac{1}{b} + N_{z_{i^\text{split}}})^{a + \sum_{k: z_k =z_{i^\text{split}}} y_k}}\right)\;\left(\frac{\Gamma(a + \sum_{k: z_k =z_{j^\text{split}}} y_k)}{\Gamma(a)} \frac{(\frac{1}{b})^a}{(\frac{1}{b} + N_{z_{j^\text{split}}})^{a + \sum_{k: z_k =z_{j^\text{split}}} y_k}}\right)}{\left(\frac{\Gamma(a + \sum_{k: z_k =z_i} y_k)}{\Gamma(a)} \frac{(\frac{1}{b})^a}{(\frac{1}{b} + N_{z_i})^{a + \sum_{k: z_k =z_i} y_k}}\right)}\\[1em]
+&= \frac{\left(\frac{\Gamma(a + \sum_{k: z_k =z_{i^\text{split}}} y_k)}{\Gamma(a)} \frac{(\frac{1}{b})^a}{(\frac{1}{b} + N_{z_{i^\text{split}}})^{a + \sum_{k: z_k =z_{i^\text{split}}} y_k}}\right)\;\left(\frac{\Gamma(a + \sum_{k: z_k =z_{j^\text{split}}} y_k)}{(\frac{1}{b} + N_{z_{j^\text{split}}})^{a + \sum_{k: z_k =z_{j^\text{split}}} y_k}}\right)}{\left(\frac{\Gamma(a + \sum_{k: z_k =z_i} y_k)}{(\frac{1}{b} + N_{z_i})^{a + \sum_{k: z_k =z_i} y_k}}\right)}
+\intertext{Note: $k \in z_c$ is shorthand for $k: z_k = z_c$:} 
+&= \frac{(\frac{1}{b})^a}{\Gamma(a)}\;\frac{\Gamma(a + \sum_{k\in z_{i^\text{split}}} y_k)}{(\frac{1}{b} + N_{z_{i^\text{split}}})^{a + \sum_{k\in z_{i^\text{split}}} y_k}}\;\;\frac{\Gamma(a + \sum_{k\in z_{j^\text{split}}} y_k)}{\;\;(\frac{1}{b} + N_{z_{j^\text{split}}})^{a + \sum_{k\in z_{j^\text{split}}} y_k}} \;\; \frac{(\frac{1}{b} + N_{z_i})^{a + \sum_{k\in z_i} y_k}}{\Gamma(a + \sum_{k\in z_i} y_k)}
+\end{align}
+
+
+
+\subsubsection{Merge}
+\begin{align}
+\frac{P(\mathbf{z}^{\text{merge}}|\alpha)}{P(\mathbf{z}|\alpha)} &= 
+\frac{1}{\alpha} \; \frac{\Gamma(N_{z_i^{\text{merge}}})}{\Gamma(N_{z_i})\Gamma(N_{z_j})}\\[1em]
+\frac{q(\mathbf{z}|\mathbf{z}^\text{merge})}{q(\mathbf{z}^\text{merge}|\mathbf{z})} &= 
+(\frac{1}{2})^{N_{z_i} + N_{z_j} - 2}\\[1em]
+\frac{P(\mathbf{y}|\mathbf{z}^\text{merge}, \gamma)}{P(\mathbf{y}|\mathbf{z}, \gamma)} &= 
+\frac{\mathlarger{\prod}_{k: z_k = z_{i^\text{merge}}} P(y_k\;|\;\mathbf{y}_{c, <k}, \gamma)}{\mathlarger{\prod}_{k: z_k = z_i} P(y_k\;|\;\mathbf{y}_{c, <k}, \gamma)\;\mathlarger{\prod}_{k: z_k = z_j} P(y_k\;|\;\mathbf{y}_{c, <k}, \gamma)}\\[1em]
+&= \frac{\Gamma(a)}{(\frac{1}{b})^a} \;\frac{\Gamma(a + \sum_{k\in z_{i^\text{merge}}} y_k)}{(\frac{1}{b} + N_{z_{i^\text{merge}}})^{a + \sum_{k\in z_{i^\text{merge}}} y_k}} \;\; \frac{(\frac{1}{b} + N_{z_i})^{a + \sum_{k\in z_i} y_k}}{\;\;\Gamma(a + \sum_{k\in z_i} y_k)} \;\; \frac{(\frac{1}{b} + N_{z_j})^{a + \sum_{k\in z_j} y_k}}{\;\;\Gamma(a + \sum_{k\in z_j} y_k)}
+\end{align}
+
+\subsection{Split-Merge Algorithm with Restricted Gibbs Scans}
+\subsubsection{Gibbs Scan: Split}
+\begin{align}
+P(z_{k^\text{split}}\;|\;\mathbf{z}_{\_k}, y_k, \mathbf{y}_{\_k}) &= 
+\frac{N_{\_k, \; z_{k^\text{split}}} \; P(y_k\;|\;z_{k^\text{split}}, \mathbf{y}_{\_k})}{N_{\_k, \; z_{i^\text{split}}}\;P(y_k\;|\;z_{k^\text{split}}=z_{i^\text{split}}, \mathbf{y}_{\_k}) + N_{\_k, \; z_{j^\text{split}}}\;P(y_k\;|\;z_{k^\text{split}}=z_{j^\text{split}}, \mathbf{y}_{\_k})}\\[1em]
+P(y_k\;|\;z_{k^\text{split}}, \mathbf{y}_{\_k})
+&= \frac{\Gamma(a + y_k + \sum_{q\neq k \in z_{k^\text{split}}} y_q)}{\Gamma(a + \sum_{q\neq k \in z_{k^\text{split}} } y_q)} \frac{(\frac{1}{b} + N_{\_k, \; z_{k^\text{split}}})^{(a + \sum_{q\neq k \in z_{k^\text{split}}} y_q)}}{(\frac{1}{b} + 1 + N_{\_k, \; z_{k^\text{split}}})^{(a + y_k + \sum_{q\neq k \in z_{k^\text{split}}} y_q)}}\frac{1}{\Gamma(y_k + 1)}
+\end{align}
+
+\end{document}
